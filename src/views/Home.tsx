@@ -1,14 +1,15 @@
 import { useState } from "react";
-import { Check, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
-import { CHALLENGES, challengeTitle, grouped, moduleTitle } from "~/challenges";
+import { CHALLENGES, indexOf } from "~/challenges";
+import { QuestMap } from "~/components/QuestMap";
 import { requestConfirmDialog } from "~/lib/confirmDialog";
 import { nextIncomplete, useProgress } from "~/lib/progress";
 import { pixelTransition } from "~/lib/pixelTransition";
-import { href, navigate } from "~/lib/router";
+import { navigate } from "~/lib/router";
 import { strings } from "~/strings";
 import { Button } from "~/components/ui/button";
-import { cn } from "~/lib/utils";
+import { Layer } from "~/lib/layer";
 
 export function Home({ locale }: { locale: string }) {
   const { progress, completedCount, total, allDone, clearAll } = useProgress();
@@ -44,6 +45,7 @@ export function Home({ locale }: { locale: string }) {
       {/* Glass, because the text sits on a bright sky in one theme and a night
           sky in the other, and neither one is a reliable backdrop for body
           copy on its own. */}
+      <Layer id="progress">
       <section className="panel-glass rounded-lg border p-4">
         <div>
           <div className="flex items-center justify-between gap-3">
@@ -61,44 +63,19 @@ export function Home({ locale }: { locale: string }) {
             )}
           </div>
 
-          {/* One row per module rather than sixteen circles in a wrapping
-              block — the wrap point moves with the window, so an ungrouped
-              row would split the modules in a different place at every
-              width. */}
-          <div className="mt-3 space-y-2">
-            {grouped().map(({ module, items }) => (
-              <div key={module.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <span className="w-24 shrink-0 text-[11px] text-muted-foreground">
-                  {moduleTitle(module, locale)}
-                </span>
-                <ol className="flex flex-wrap gap-1.5">
-                  {items.map(({ challenge, index }) => {
-                    const done = Boolean(progress.completed[challenge.id]);
-                    return (
-                      <li key={challenge.id}>
-                        <a
-                          href={href({ name: "challenge", id: challenge.id })}
-                          title={`${index + 1}. ${challengeTitle(challenge, locale)}`}
-                          className={cn(
-                            "flex size-7 items-center justify-center rounded-full border text-[11px] tabular-nums transition-colors",
-                            done
-                              ? "border-success bg-success text-white"
-                              : "border-border bg-card/70 text-muted-foreground backdrop-blur-[2px] hover:border-primary hover:text-foreground",
-                          )}
-                        >
-                          {done ? <Check className="size-3.5" /> : index + 1}
-                        </a>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </div>
-            ))}
+          <div className="mt-3">
+            <QuestMap
+              completed={progress.completed}
+              current={allDone ? total : indexOf(nextIncomplete(progress.completed))}
+              locale={locale}
+            />
           </div>
         </div>
       </section>
+      </Layer>
 
       {!started && (
+        <Layer id="welcome">
         <section className="panel-glass mt-6 rounded-lg border p-5">
           <h1 className="font-semibold text-2xl tracking-tight">{t.homeWelcome}</h1>
           <p className="mt-2 text-muted-foreground text-sm leading-relaxed">
@@ -115,9 +92,11 @@ export function Home({ locale }: { locale: string }) {
             </Button>
           </span>
         </section>
+        </Layer>
       )}
 
       {started && !allDone && (
+        <Layer id="welcome">
         <section className="panel-glass mt-6 rounded-lg border p-5">
           <h1 className="font-semibold text-2xl tracking-tight">{t.homeOnWay}</h1>
           <p className="mt-2 text-muted-foreground text-sm">
@@ -128,9 +107,11 @@ export function Home({ locale }: { locale: string }) {
             {t.homeContinue}
           </Button>
         </section>
+        </Layer>
       )}
 
       {allDone && (
+        <Layer id="welcome">
         <section className="panel-glass mt-6 rounded-lg border p-5">
           <h1 className="font-semibold text-2xl tracking-tight">{t.homeCongrats}</h1>
           <p className="mt-2 text-muted-foreground text-sm">
@@ -140,6 +121,7 @@ export function Home({ locale }: { locale: string }) {
             {t.homeSeeNext}
           </Button>
         </section>
+        </Layer>
       )}
     </div>
   );

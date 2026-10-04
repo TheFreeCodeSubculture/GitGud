@@ -1,5 +1,5 @@
-import type { ReactNode } from "react";
-import { BookMarked, Check, Home, Info, LibraryBig, Moon, Sun } from "lucide-react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { BookMarked, Check, Home, Info, Layers, LibraryBig, Moon, Sun } from "lucide-react";
 
 import { CHALLENGES, challengeTitle, grouped, moduleBlurb, moduleTitle } from "~/challenges";
 import { CommandPalette } from "~/components/CommandPalette";
@@ -12,9 +12,11 @@ import { useHeaderTitle } from "~/lib/headerTitle";
 import { WindowControls } from "~/components/WindowControls";
 import { availableLocales } from "~/lib/content";
 import { strings } from "~/strings";
+import { CARDS } from "~/lib/cards";
 import { useProgress } from "~/lib/progress";
 import { href, navigate, useRoute, type Route } from "~/lib/router";
 import { Button } from "~/components/ui/button";
+import { Layer } from "~/lib/layer";
 import { cn } from "~/lib/utils";
 
 const NAV: { page: "dictionary" | "resources" | "about"; key: "navDictionary" | "navResources" | "navAbout"; icon: typeof Info }[] = [
@@ -37,7 +39,14 @@ export function Shell({
   onDarkChange: (next: boolean) => void;
 }) {
   const route = useRoute();
-  const { isComplete, completedCount, total } = useProgress();
+  // The page scrolls inside <main>, not the window, so a new route starts at
+  // the top only if this resets it.
+  const mainRef = useRef<HTMLElement>(null);
+  const routeKey = href(route);
+  useEffect(() => {
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [routeKey]);
+  const { progress, isComplete, completedCount, total } = useProgress();
   const locales = availableLocales();
   const t = strings(locale);
   const promoted = useHeaderTitle();
@@ -48,7 +57,8 @@ export function Shell({
     // The sidebar is a full-height column, title-bar row included, so its
     // divider runs from the very top. That is what stops the window reading as
     // "OS bar on top of app" — the app's own structure is the only structure.
-    <div className="flex h-screen bg-background text-foreground">
+    <div data-layer-host className="flex h-screen bg-background text-foreground">
+      <Layer id="sidebar" className="flex shrink-0">
       <aside className="relative hidden w-64 shrink-0 flex-col border-r bg-sidebar md:flex">
         <SidebarArt />
 
@@ -205,6 +215,21 @@ export function Shell({
             scroll, and with the scrollbar gone these three would otherwise sit
             off the bottom edge of a short window with nothing to say so. */}
         <div className="relative z-10 shrink-0 border-t p-2">
+          <a
+            href={href({ name: "deck" })}
+            className={cn(
+              "flex items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+              route.name === "deck"
+                ? "bg-sidebar-row-selected font-medium text-sidebar-foreground"
+                : "text-sidebar-muted-foreground hover:bg-sidebar-row-hover hover:text-sidebar-foreground",
+            )}
+          >
+            <Layers className="size-4" />
+            {t.navDeck}
+            <span className="ml-auto text-[11px] text-sidebar-muted-foreground/70 tabular-nums">
+              {CARDS.filter((c) => progress.cards[c.id]).length}/{CARDS.length}
+            </span>
+          </a>
           {NAV.map(({ page, key, icon: Icon }) => (
             <a
               key={page}
@@ -237,17 +262,19 @@ export function Shell({
           )}
         </div>
       </aside>
+      </Layer>
 
       {/* `relative` so the home scene can sit behind the header as well as the
           content. Painting it inside `main` left the title bar as a flat slab
           of app colour above the sky, and put the artwork inside the scroll
           fade's mask — whose opaque scrollbar lane showed up as an unfaded
           column at the top right. */}
-      <div className="relative flex min-w-0 flex-1 flex-col">
+      <div data-layer-host className="relative flex min-w-0 flex-1 flex-col">
         {route.name === "home" && <HomeScene dark={dark} />}
 
         {/* No bottom border: content dissolves under the glass rather than
             stopping at a hard line. */}
+        <Layer id="header" className="relative z-20 shrink-0">
         <header
           data-tauri-drag-region
           className={cn(
@@ -261,7 +288,7 @@ export function Shell({
           {/* The promoted heading slides up into the bar as the real one
               leaves the viewport, blurring through the handover so the two
               never read as two separate things. */}
-          <div className="my-auto min-w-0 flex-1 pl-4" data-tauri-drag-region>
+          <div className="my-auto min-w-0 flex-1 pl-4" data-tauri-drag-region data-promoted>
             <div
               className={cn(
                 "flex min-w-0 items-center gap-2.5",
@@ -310,10 +337,13 @@ export function Shell({
 
           <WindowControls />
         </header>
+        </Layer>
 
-        <main className="@container topbar-scroll-fade min-w-0 flex-1 overflow-y-auto">
+        <Layer id="content" className="flex min-h-0 flex-1 flex-col">
+        <main ref={mainRef} className="@container topbar-scroll-fade min-w-0 flex-1 overflow-y-auto">
           {children}
         </main>
+        </Layer>
       </div>
     </div>
   );

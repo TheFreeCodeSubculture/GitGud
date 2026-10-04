@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import { Layer } from "~/lib/layer";
+
 /**
  * The full-bleed pixel landscape behind the home page, and Gitty-chan standing
  * on its grass.
@@ -35,23 +37,31 @@ const ACT_MS = 6750;
 
 export function HomeScene({ dark }: { dark: boolean }) {
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
-      {/* Fills the band above the artwork when the pane is taller than the
-          scene, so the sky reaches the top instead of ending on an edge. Both
-          values are the average of their image's top rows, so the join is
-          invisible rather than a stripe of nearly-the-right blue. */}
-      <div className="absolute inset-0 bg-[#379ed9] dark:bg-[#182650]" />
+    <div aria-hidden="true" data-layer-host className="pointer-events-none absolute inset-0 overflow-hidden">
+      <Layer id="sky" style={{ position: "absolute", inset: 0 }}>
+        {/* Fills the band above the artwork when the pane is taller than the
+            scene, so the sky reaches the top instead of ending on an edge. Both
+            values are the average of their image's top rows, so the join is
+            invisible rather than a stripe of nearly-the-right blue. */}
+        <div className="absolute inset-0 bg-[#379ed9] dark:bg-[#182650]" />
 
-      <div className="absolute inset-x-0 bottom-0" style={{ aspectRatio: String(ASPECT) }}>
-        <img
-          src={dark ? "/brand/home-bg-dark.webp" : "/brand/home-bg-light.webp"}
-          alt=""
-          className="absolute inset-0 h-full w-full select-none object-cover object-bottom"
-          style={{ imageRendering: "pixelated" }}
-        />
+        <div className="absolute inset-x-0 bottom-0" style={{ aspectRatio: String(ASPECT) }}>
+          <img
+            src={dark ? "/brand/home-bg-dark.webp" : "/brand/home-bg-light.webp"}
+            alt=""
+            className="absolute inset-0 h-full w-full select-none object-cover object-bottom"
+            style={{ imageRendering: "pixelated" }}
+          />
+        </div>
+      </Layer>
 
-        <Gitty dark={dark} />
-      </div>
+      {/* Gitty shares the artwork's box so the percentages still land her on
+          the grass; it is a separate box only so she can be lifted apart. */}
+      <Layer id="gitty" style={{ position: "absolute", inset: 0 }}>
+        <div className="absolute inset-x-0 bottom-0" style={{ aspectRatio: String(ASPECT) }}>
+          <Gitty dark={dark} />
+        </div>
+      </Layer>
     </div>
   );
 }

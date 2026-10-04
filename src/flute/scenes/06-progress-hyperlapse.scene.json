@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "id": "06-progress-hyperlapse",
+  "title": "06 · Hyper-lapse — sixteen challenges",
+  "description": "Surface travel along the progress circles while all sixteen challenges complete in sequence, a velocity break onto the 16 / 16 counter, then a pull back to the Congratulations panel.",
+  "definition": {
+    "scene": {
+      "version": 3,
+      "camera": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "perspective": 1400,
+        "rotateX": 0,
+        "rotateY": 0,
+        "rotateZ": 0
+      },
+      "focus": {
+        "distance": 1400,
+        "fStop": 4,
+        "focalLength": 100,
+        "maxBlur": 6
+      },
+      "nodes": [
+        {
+          "id": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sidebar",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sky",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "gitty",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "header",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "content",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "progress",
+          "parentId": "content",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "welcome",
+          "parentId": "content",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        }
+      ]
+    },
+    "motion": {
+      "durationMs": 8000,
+      "speed": 1,
+      "tracks": [
+        {
+          "target": {
+            "kind": "surface",
+            "id": "progress"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 100,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 100,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "welcome"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 50,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 50,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "x",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -138,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": -84,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": 236,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": -87,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 138,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "y",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -287,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": -289,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": -279,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": -342,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": -125,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -897,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": -892,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": -725,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": -885,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": -153,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateX",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 24,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": 24,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": 20,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": 10,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 8,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateY",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -26,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": -26,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": -22,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": -6,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 10,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateZ",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": 0,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": 0,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 0,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "focus"
+          },
+          "property": "distance",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 583,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 900,
+              "value": 560,
+              "easing": "linear"
+            },
+            {
+              "timeMs": 5400,
+              "value": 560,
+              "easing": "easeInOut"
+            },
+            {
+              "timeMs": 6000,
+              "value": 483,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 1217,
+              "easing": "cinematic"
+            }
+          ]
+        }
+      ]
+    },
+    "width": 1440,
+    "height": 900
+  }
+}

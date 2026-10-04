@@ -1,0 +1,376 @@
+{
+  "version": 1,
+  "id": "03-day-to-night",
+  "title": "03 · Day to night — Gitty's spell",
+  "description": "Glass panels float above the pixel landscape; mid-shot the app flips to night and Gitty casts her spell, then the camera pushes into the Start button (match-cuts into 04).",
+  "definition": {
+    "scene": {
+      "version": 3,
+      "camera": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "perspective": 1400,
+        "rotateX": 0,
+        "rotateY": 0,
+        "rotateZ": 0
+      },
+      "focus": {
+        "distance": 1400,
+        "fStop": 5.6,
+        "focalLength": 100,
+        "maxBlur": 6
+      },
+      "nodes": [
+        {
+          "id": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sidebar",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sky",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "gitty",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "header",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "content",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "progress",
+          "parentId": "content",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "welcome",
+          "parentId": "content",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        }
+      ]
+    },
+    "motion": {
+      "durationMs": 8000,
+      "speed": 1,
+      "tracks": [
+        {
+          "target": {
+            "kind": "surface",
+            "id": "welcome"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 170,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 170,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "progress"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 110,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 110,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "gitty"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 40,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 40,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "sidebar"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 20,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8000,
+              "value": 20,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "x",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 71,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": -13,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": -91,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "y",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 60,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 101,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": 84,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -156,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": -228,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": -763,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateX",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 8,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 6,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": 0,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateY",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 22,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 12,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": 0,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateZ",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": 0,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "focus"
+          },
+          "property": "distance",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 1167,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 1077,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 7700,
+              "value": 467,
+              "easing": "cinematic"
+            }
+          ]
+        }
+      ]
+    },
+    "width": 1440,
+    "height": 900
+  }
+}

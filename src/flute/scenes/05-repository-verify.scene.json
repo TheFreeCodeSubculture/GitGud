@@ -1,0 +1,356 @@
+{
+  "version": 1,
+  "id": "05-repository-verify",
+  "title": "05 · Repository — real verify",
+  "description": "Hero orbit around challenge 7's heading with the sidebar floating in front; the lesson scrolls to the verify box, Verify is pressed and runs real Git on a real folder, then the camera racks to the sidebar as Repository turns green.",
+  "definition": {
+    "scene": {
+      "version": 3,
+      "camera": {
+        "x": 0,
+        "y": 0,
+        "z": 0,
+        "perspective": 1400,
+        "rotateX": 0,
+        "rotateY": 0,
+        "rotateZ": 0
+      },
+      "focus": {
+        "distance": 1400,
+        "fStop": 5.6,
+        "focalLength": 100,
+        "maxBlur": 6
+      },
+      "nodes": [
+        {
+          "id": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sidebar",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "header",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "content",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        }
+      ]
+    },
+    "motion": {
+      "durationMs": 12000,
+      "speed": 1,
+      "tracks": [
+        {
+          "target": {
+            "kind": "surface",
+            "id": "sidebar"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 120,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 12000,
+              "value": 120,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "header"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 60,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 12000,
+              "value": 60,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "x",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -204,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": -226,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": -59,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": -40,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": -474,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "y",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -342,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": -326,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 46,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": 60,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": -32,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -670,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": -916,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": -822,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": -858,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": -205,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateX",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 4,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": 6,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 6,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": 6,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": 4,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateY",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 30,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": -16,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": -10,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": -4,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": 22,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateZ",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": 0,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "focus"
+          },
+          "property": "distance",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 636,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 3400,
+              "value": 583,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 583,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 8400,
+              "value": 538,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 11600,
+              "value": 875,
+              "easing": "cinematic"
+            }
+          ]
+        }
+      ]
+    },
+    "width": 1440,
+    "height": 900
+  }
+}

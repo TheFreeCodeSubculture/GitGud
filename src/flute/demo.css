@@ -1,0 +1,46 @@
+/* Flute demo scenes only. Keeps the app's layout intact once its Layer seams
+   are wrapped in Surfaces, and lets depth survive through host elements. */
+
+/* Host elements between surfaces must not flatten 3D. */
+.flute-demo[data-layer-host],
+.flute-demo [data-layer-host] {
+  transform-style: preserve-3d;
+  overflow: visible;
+}
+
+/* Shell sizes itself to the window; here it fills the page surface. */
+.flute-demo > .h-screen {
+  height: 100%;
+}
+
+/* A Surface adds wrapper divs; let them fill the slot the host element had. */
+.flute-demo [data-flute-id] > div {
+  height: 100%;
+}
+.flute-demo [data-flute-id="sidebar"] aside {
+  height: 100%;
+}
+.flute-demo [data-flute-id="content"] > div {
+  display: flex;
+  flex-direction: column;
+}
+.flute-demo [data-flute-id="content"] main {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
+/* Home fits the window, so its panels can leave the scroll area in depth. */
+.flute-demo.open-content main,
+.flute-demo.open-content main > div {
+  overflow: visible;
+  mask-image: none;
+  -webkit-mask-image: none;
+  container-type: normal;
+  transform-style: preserve-3d;
+}
+
+/* At scroll 0 the app never promotes the heading into the title bar; the
+   observer only thinks it left because the page is transformed. */
+.flute-demo [data-promoted] {
+  visibility: hidden;
+}

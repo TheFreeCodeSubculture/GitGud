@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+# The site's course demo, built in CI by .github/workflows/pages.yml (npm run build:demo)
+site/demo
 *.local
 
 # Editor directories and files

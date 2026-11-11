@@ -76,10 +76,18 @@
              override the preview tilt. -->
         <div data-rise style="--d:420ms">
           <div class="hero-preview">
-            <figure class="hero-shot tile">
-              <img src="assets/app-home.jpg" alt="The Git Gud home screen with the welcome message and challenge list" loading="eager" />
-              <figcaption>The home screen: your progress, all sixteen challenges, one Start button.</figcaption>
-            </figure>
+            <!-- The real app on a pretend Mac, touring itself; hero.js -->
+            <div class="hero-demo" id="hero-demo">
+              <div class="scrn"></div>
+              <div class="hbar">
+                <p class="hcap" aria-live="polite">The real Git Gud, running right here.</p>
+                <div class="hctl">
+                  <button class="try" type="button">Try it yourself</button>
+                  <div class="driving"><button type="button">Resume tour</button></div>
+                  <div class="chaps" aria-label="Tour chapters"></div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </header>
@@ -94,101 +102,63 @@
         </div>
       </div>
 
-      <!-- Modules -->
-      <section class="section container">
-        <div class="section-head">
-          <span class="eyebrow">The course</span>
-          <h2>Start at the terminal, end with a pull request.</h2>
-          <p>Most tutorials assume you already live on the command line. Git Gud starts before Git, in the window Git lives in.</p>
-        </div>
-        <div class="modules">
-          <div class="module tile">
-            <span class="module-index">01–02</span>
-            <h3>The Terminal</h3>
-            <p>The black window, and how to talk to it.</p>
-            <ol>
-              <li><span>1</span>Meet the Terminal</li>
-              <li><span>2</span>Command Performance</li>
-            </ol>
-          </div>
-          <div class="module tile">
-            <span class="module-index">03–05</span>
-            <h3>Files &amp; Folders</h3>
-            <p>Finding your way around, and making things.</p>
-            <ol>
-              <li><span>3</span>You Are Here</li>
-              <li><span>4</span>There and Back Again</li>
-              <li><span>5</span>Make It So</li>
-            </ol>
-          </div>
-          <div class="module tile">
-            <span class="module-index">06–16</span>
-            <h3>Git &amp; GitHub</h3>
-            <p>Version control, and sharing your work.</p>
-            <ol>
-              <li><span>6</span>Get Git</li>
-              <li><span>7</span>Repository</li>
-              <li><span>8</span>Commit to It</li>
-              <li><span>9</span>GitHubbin</li>
-              <li><span>10</span>Remote Control</li>
-              <li><span>11</span>Forks and Clones</li>
-              <li><span>12</span>Branches Aren’t Just for Birds</li>
-              <li><span>13</span>It’s a Small World</li>
-              <li><span>14</span>Pull, Never Out of Date</li>
-              <li><span>15</span>Requesting You Pull, Please</li>
-              <li><span>16</span>Merge, Tada!</li>
-            </ol>
-          </div>
-        </div>
-      </section>
+      <!-- Gallery -->
+      <div class="gallery container">
+        <figure>
+          <img src="assets/shots/repo.webp" alt="Git Gud challenge page for the Repository lesson" loading="lazy" width="1360" height="940" />
+          <figcaption>Lessons beside the terminal they teach</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/shots/deck.webp" alt="Git Gud card deck of commands collected by running them for real" loading="lazy" width="1360" height="940" />
+          <figcaption>Every command you run becomes a card</figcaption>
+        </figure>
+        <figure>
+          <img src="assets/shots/finale.webp" alt="Git Gud finale: the contributors quilt with your patch on it" loading="lazy" width="1360" height="940" />
+          <figcaption>Your patch, stitched into the public quilt</figcaption>
+        </figure>
+      </div>
 
-      <!-- Real tools -->
-      <section class="section container">
-        <div class="split">
-          <div>
-            <h2>Real tools, not a simulation.</h2>
-            <p class="lede">Every challenge runs against your machine and your GitHub account. Finishing one means it genuinely worked — you keep the repos, the branches, and the green squares.</p>
+      <!-- The course: sticky stage + step cards, driven by course.js -->
+      <section class="course" id="course">
+        <div class="container">
+          <div class="section-head">
+            <span class="eyebrow">The course</span>
+            <h2>Start at the terminal, end with a pull request.</h2>
+            <p>Most tutorials assume you already live on the command line. Git Gud starts before Git, in the window Git lives in.</p>
           </div>
-          <ul class="checks">
-            <li>
-              <span class="tick" aria-hidden="true">✓</span>
-              <div><strong>Your terminal, your Git</strong><p>Challenges verify with <code>git</code> itself, never a built-in fake.</p></div>
-            </li>
-            <li>
-              <span class="tick" aria-hidden="true">✓</span>
-              <div><strong>Your GitHub account</strong><p>Fork, branch, invite a collaborator, open a real pull request.</p></div>
-            </li>
-            <li>
-              <span class="tick" aria-hidden="true">✓</span>
-              <div><strong>Checks that explain themselves</strong><p>Each result names what it looked at — including the shell history file it read.</p></div>
-            </li>
-            <li>
-              <span class="tick" aria-hidden="true">✓</span>
-              <div><strong>A payoff with your name on it</strong><p>The final challenges stitch your own patch into a public quilt.</p></div>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <!-- Quilt -->
-      <section class="section container">
-        <div class="quilt-grid">
-          <img src="assets/app-finale.png" alt="The Git Gud finale: your patch stitched into the contributors quilt" loading="lazy" />
-          <div>
-            <h2>Finish with your patch on the wall.</h2>
-            <p>The last challenges walk you through forking, branching, collaborating, and merging — and your reward is a generated patch with your name on it, hanging in a public quilt next to everyone who finished before you.</p>
+          <div class="scrolly" id="scrolly">
+            <div class="stick"><div class="in">
+              <div class="rail" aria-label="Steps"></div>
+              <div class="scrn" aria-hidden="true"></div>
+              <p class="cap"></p>
+              <div class="pills" aria-label="Steps"></div>
+            </div></div>
+            <article class="step" data-s="terminal">
+              <span class="pen">Challenges 1–2 · The Terminal</span>
+              <h3>Start in the black window.</h3>
+              <p>Type <code>whoami</code> into your real terminal. Git Gud reads your shell history, sees you ran it, and ticks the challenge off.</p>
+            </article>
+            <article class="step" data-s="files">
+              <span class="pen">Challenges 3–5 · Files &amp; Folders</span>
+              <h3>Find your way around.</h3>
+              <p><code>cd</code>, <code>mkdir</code>, <code>touch</code>: the moves Git assumes you already know, each checked against the folder you actually made.</p>
+            </article>
+            <article class="step" data-s="git">
+              <span class="pen">Challenges 6–10 · Git</span>
+              <h3>Real Git, not a simulation.</h3>
+              <p>Checks run <code>git</code> itself and watch while you work. Every result names what it looked at, so nothing about it is hidden.</p>
+            </article>
+            <article class="step" data-s="github">
+              <span class="pen">Challenges 11–16 · GitHub</span>
+              <h3>Finish with your patch on the wall.</h3>
+              <p>Fork, branch, and open a real pull request from your own GitHub account. When it merges, your generated patch joins the public quilt.</p>
+            </article>
+            <article class="step" data-s="lang">
+              <span class="pen">9 languages</span>
+              <h3>Learn in your own language.</h3>
+              <p>Lessons, dictionary and interface are fully translated, and the app follows your system language: English, 日本語, 中文(臺灣), 한국어, Português, Українська, Español and Français.</p>
+            </article>
           </div>
-        </div>
-      </section>
-
-      <!-- Locales -->
-      <section class="section container">
-        <div class="section-head">
-          <h2>Learn in your own language.</h2>
-          <p>All sixteen challenges, the dictionary, and the interface are fully translated — the app follows your system language automatically.</p>
-        </div>
-        <div class="locale-cloud">
-          <span>English</span><span>日本語</span><span>中文(臺灣)</span><span>한국어</span><span>Português Brasileiro</span><span>Українська</span><span>Español (Colombia)</span><span>Español (España)</span><span>Français</span>
         </div>
       </section>
 
@@ -243,5 +213,8 @@
   </div>
 
   <script src="app.js" defer></script>
+  <script src="stage.js" defer></script>
+  <script src="hero.js" defer></script>
+  <script src="course.js" defer></script>
 </body>
 </html>

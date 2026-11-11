@@ -5,7 +5,9 @@
 # its artifact and will fail at the deploy step — that failure is the signal
 # that Pages is not enabled yet, not a bug in the site.
 #
-# Only runs when the site itself changes, so app commits never trigger it.
+# The course section plays the real app UI on a fake backend (src/demo/),
+# built into site/demo/ here rather than committed. So this runs when the site
+# changes and also when the app's source does, keeping the demo in step.
 
 name: Site
 
@@ -14,6 +16,12 @@ on:
     branches: [main]
     paths:
       - "site/**"
+      - "src/**"
+      - "public/**"
+      - "demo.html"
+      - "vite.config.ts"
+      - "vite.demo.config.ts"
+      - "package-lock.json"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -35,6 +43,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Build the course demo
+        run: |
+          npm ci
+          npm run build:demo
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

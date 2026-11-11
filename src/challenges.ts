@@ -221,7 +221,10 @@ export const COMPANION = {
   owner: "JyotirmoyDas05",
   repo: "git-gud-verifywork",
   bot: "gitgud-verifybot",
-  pages: "https://jyotirmoydas05.github.io/git-gud-verifywork",
+  // Pages, unlike git and the API, does not redirect after a repo transfer.
+  // ponytail: owner stays on the old name (GitHub redirects it) until the
+  // lesson content that tells learners to fork it moves too.
+  pages: "https://thefreecodesubculture.github.io/git-gud-verifywork",
 } as const;
 
 /**

@@ -60,6 +60,8 @@ function Director({ cue }: { cue: (t: number) => Cue }) {
 
   // Layout effect: the change lands before paint, so a capture at time t sees it.
   useLayoutEffect(() => {
+    // Lazy images under a 3D transform may never start loading, and export waits for every image.
+    document.querySelectorAll<HTMLImageElement>('img[loading="lazy"]').forEach((img) => (img.loading = "eager"));
     if (want.dark !== undefined) setDark(want.dark);
     if (want.done !== undefined) {
       CHALLENGE_IDS.forEach((id, i) => {

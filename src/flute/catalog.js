@@ -6,6 +6,9 @@ import recipe3 from "./scenes/04-challenge-arrival.scene.json";
 import recipe4 from "./scenes/05-repository-verify.scene.json";
 import recipe5 from "./scenes/06-progress-hyperlapse.scene.json";
 import recipe6 from "./scenes/07-finale.scene.json";
+import recipe7 from "./scenes/10-iso-home.scene.json";
+import recipe8 from "./scenes/11-iso-lesson.scene.json";
+import recipe9 from "./scenes/12-iso-verify.scene.json";
 export const sceneModules = {
   "src/flute/scenes/01-cold-open.scene.json": async () => ({default:recipe0}),
   "src/flute/scenes/01-cold-open.tsx": () => import("./scenes/01-cold-open"),
@@ -21,4 +24,10 @@ export const sceneModules = {
   "src/flute/scenes/06-progress-hyperlapse.tsx": () => import("./scenes/06-progress-hyperlapse"),
   "src/flute/scenes/07-finale.scene.json": async () => ({default:recipe6}),
   "src/flute/scenes/07-finale.tsx": () => import("./scenes/07-finale"),
+  "src/flute/scenes/10-iso-home.scene.json": async () => ({default:recipe7}),
+  "src/flute/scenes/10-iso-home.tsx": () => import("./scenes/10-iso-home"),
+  "src/flute/scenes/11-iso-lesson.scene.json": async () => ({default:recipe8}),
+  "src/flute/scenes/11-iso-lesson.tsx": () => import("./scenes/11-iso-lesson"),
+  "src/flute/scenes/12-iso-verify.scene.json": async () => ({default:recipe9}),
+  "src/flute/scenes/12-iso-verify.tsx": () => import("./scenes/12-iso-verify"),
 };

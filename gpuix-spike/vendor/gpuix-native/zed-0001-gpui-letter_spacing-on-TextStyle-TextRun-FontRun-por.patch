@@ -1,0 +1,618 @@
+From 6687b5e005dbf092778a6adedf6a69a6f389947f Mon Sep 17 00:00:00 2001
+From: Git Gud <gg@local>
+Date: Wed, 4 Nov 2026 13:38:22 +0530
+Subject: [PATCH 1/2] gpui: letter_spacing on TextStyle/TextRun/FontRun (port
+ of zed-industries/zed#53475 without text_transform)
+
+cosmic-text (Linux) takes spacing in em, so gpui_wgpu divides the px value by the font size.
+---
+ crates/gpui/src/platform.rs                 | 24 +++++++--
+ crates/gpui/src/style.rs                    |  7 +++
+ crates/gpui/src/styled.rs                   |  8 ++-
+ crates/gpui/src/text_system.rs              | 24 +++++++++
+ crates/gpui/src/text_system/line_layout.rs  | 14 +++++-
+ crates/gpui/src/text_system/line_wrapper.rs | 54 +++++++++++++++++++-
+ crates/gpui_macos/src/text_system.rs        | 55 ++++++++++++++++++---
+ crates/gpui_wgpu/benches/layout_line.rs     |  3 ++
+ crates/gpui_wgpu/src/cosmic_text_system.rs  | 24 +++++++--
+ crates/gpui_windows/src/direct_write.rs     | 16 +++---
+ 10 files changed, 202 insertions(+), 27 deletions(-)
+
+diff --git a/crates/gpui/src/platform.rs b/crates/gpui/src/platform.rs
+index e37ab998dd..86d3d84cb5 100644
+--- a/crates/gpui/src/platform.rs
++++ b/crates/gpui/src/platform.rs
+@@ -1209,7 +1209,7 @@ impl PlatformTextSystem for NoopTextSystem {
+         Ok((raster_bounds.size, Vec::new()))
+     }
+ 
+-    fn layout_line(&self, text: &str, font_size: Pixels, _runs: &[FontRun]) -> LineLayout {
++    fn layout_line(&self, text: &str, font_size: Pixels, font_runs: &[FontRun]) -> LineLayout {
+         let mut position = px(0.);
+         let metrics = self.font_metrics(FontId(0));
+         let em_width = font_size
+@@ -1236,9 +1236,9 @@ impl PlatformTextSystem for NoopTextSystem {
+                 position += em_width
+             }
+         }
+-        let mut runs = Vec::default();
++        let mut shaped_runs = Vec::default();
+         if !glyphs.is_empty() {
+-            runs.push(ShapedRun {
++            shaped_runs.push(ShapedRun {
+                 font_id: FontId(0),
+                 glyphs,
+             });
+@@ -1246,12 +1246,26 @@ impl PlatformTextSystem for NoopTextSystem {
+             position = px(0.);
+         }
+ 
++        let mut tracking = px(0.);
++        let mut byte_offset = 0usize;
++        for run in font_runs {
++            let end = byte_offset.saturating_add(run.len).min(text.len());
++            let slice = text.get(byte_offset..end).unwrap_or("");
++            let n = slice.chars().count();
++            if n > 1 {
++                if let Some(spacing) = run.letter_spacing {
++                    tracking += spacing * (n - 1) as f32;
++                }
++            }
++            byte_offset = byte_offset.saturating_add(run.len);
++        }
++
+         LineLayout {
+             font_size,
+-            width: position,
++            width: position + tracking,
+             ascent: font_size * (metrics.ascent / metrics.units_per_em as f32),
+             descent: font_size * (metrics.descent / metrics.units_per_em as f32),
+-            runs,
++            runs: shaped_runs,
+             len: text.len(),
+         }
+     }
+diff --git a/crates/gpui/src/style.rs b/crates/gpui/src/style.rs
+index 4e61a2c927..526d676e66 100644
+--- a/crates/gpui/src/style.rs
++++ b/crates/gpui/src/style.rs
+@@ -495,6 +495,11 @@ pub struct TextStyle {
+ 
+     /// The number of lines to display before truncating the text
+     pub line_clamp: Option<usize>,
++
++    /// Letter spacing added between characters, in pixels (positive widens, negative tightens).
++    ///
++    /// The platform text stack may clamp values outside the range it supports.
++    pub letter_spacing: Option<Pixels>,
+ }
+ 
+ impl Default for TextStyle {
+@@ -516,6 +521,7 @@ impl Default for TextStyle {
+             text_overflow: None,
+             text_align: TextAlign::default(),
+             line_clamp: None,
++            letter_spacing: None,
+         }
+     }
+ }
+@@ -585,6 +591,7 @@ impl TextStyle {
+             background_color: self.background_color,
+             underline: self.underline,
+             strikethrough: self.strikethrough,
++            letter_spacing: self.letter_spacing,
+         }
+     }
+ }
+diff --git a/crates/gpui/src/styled.rs b/crates/gpui/src/styled.rs
+index 2e1d482860..de1505487f 100644
+--- a/crates/gpui/src/styled.rs
++++ b/crates/gpui/src/styled.rs
+@@ -2,7 +2,7 @@ use crate::{
+     self as gpui, AbsoluteLength, AlignContent, AlignItems, AlignSelf, BorderStyle, CursorStyle,
+     DefiniteLength, Display, Fill, FlexDirection, FlexWrap, Font, FontFeatures, FontStyle,
+     FontWeight, GridPlacement, GridTemplate, GridTemplateMinSize, Hsla, JustifyContent, Length,
+-    SharedString, StrikethroughStyle, StyleRefinement, TextAlign, TextOverflow,
++    Pixels, SharedString, StrikethroughStyle, StyleRefinement, TextAlign, TextOverflow,
+     TextStyleRefinement, UnderlineStyle, WhiteSpace, px, relative, rems,
+ };
+ pub use gpui_macros::{
+@@ -126,6 +126,12 @@ pub trait Styled: Sized {
+         self
+     }
+ 
++    /// Sets the letter spacing (tracking) for text in this element and its children.
++    fn letter_spacing(mut self, spacing: impl Into<Pixels>) -> Self {
++        self.text_style().letter_spacing = Some(spacing.into());
++        self
++    }
++
+     /// Sets the text alignment to left
+     fn text_left(mut self) -> Self {
+         self.text_align(TextAlign::Left)
+diff --git a/crates/gpui/src/text_system.rs b/crates/gpui/src/text_system.rs
+index d6fdf32c7a..bfb35cd961 100644
+--- a/crates/gpui/src/text_system.rs
++++ b/crates/gpui/src/text_system.rs
+@@ -237,6 +237,7 @@ impl TextSystem {
+                 &[FontRun {
+                     len: buffer.len(),
+                     font_id,
++                    letter_spacing: None,
+                 }],
+             )
+             .width
+@@ -381,6 +382,14 @@ impl TextSystem {
+     }
+ }
+ 
++#[cfg(test)]
++impl TextSystem {
++    /// Reach the platform shaper from crate tests (e.g. `line_wrapper`) without a [`WindowTextSystem`].
++    pub(crate) fn platform_text_system_for_tests(&self) -> Arc<dyn PlatformTextSystem> {
++        self.platform_text_system.clone()
++    }
++}
++
+ /// The GPUI text layout subsystem.
+ #[derive(Deref)]
+ pub struct WindowTextSystem {
+@@ -576,8 +585,10 @@ impl WindowTextSystem {
+                 };
+ 
+                 let font_id = self.resolve_font(&run.font);
++                let letter_spacing = run.letter_spacing;
+                 if let Some(font_run) = font_runs.last_mut()
+                     && font_id == font_run.font_id
++                    && font_run.letter_spacing == letter_spacing
+                     && !decoration_changed
+                 {
+                     font_run.len += run_len_within_line;
+@@ -585,6 +596,7 @@ impl WindowTextSystem {
+                     font_runs.push(FontRun {
+                         len: run_len_within_line,
+                         font_id,
++                        letter_spacing,
+                     });
+                 }
+ 
+@@ -690,8 +702,10 @@ impl WindowTextSystem {
+             };
+ 
+             let font_id = self.resolve_font(&run.font);
++            let letter_spacing = run.letter_spacing;
+             if let Some(font_run) = font_runs.last_mut()
+                 && font_id == font_run.font_id
++                && font_run.letter_spacing == letter_spacing
+                 && !decoration_changed
+             {
+                 font_run.len += run.len;
+@@ -699,6 +713,7 @@ impl WindowTextSystem {
+                 font_runs.push(FontRun {
+                     len: run.len,
+                     font_id,
++                    letter_spacing,
+                 });
+             }
+         }
+@@ -726,6 +741,7 @@ impl WindowTextSystem {
+                 &[FontRun {
+                     len: buffer.len(),
+                     font_id,
++                    letter_spacing: None,
+                 }],
+                 None,
+             )
+@@ -772,8 +788,10 @@ impl WindowTextSystem {
+             };
+ 
+             let font_id = self.resolve_font(&run.font);
++            let letter_spacing = run.letter_spacing;
+             if let Some(font_run) = font_runs.last_mut()
+                 && font_id == font_run.font_id
++                && font_run.letter_spacing == letter_spacing
+                 && !decoration_changed
+             {
+                 font_run.len += run.len;
+@@ -781,6 +799,7 @@ impl WindowTextSystem {
+                 font_runs.push(FontRun {
+                     len: run.len,
+                     font_id,
++                    letter_spacing,
+                 });
+             }
+         }
+@@ -834,8 +853,10 @@ impl WindowTextSystem {
+             };
+ 
+             let font_id = self.resolve_font(&run.font);
++            let letter_spacing = run.letter_spacing;
+             if let Some(font_run) = font_runs.last_mut()
+                 && font_id == font_run.font_id
++                && font_run.letter_spacing == letter_spacing
+                 && !decoration_changed
+             {
+                 font_run.len += run.len;
+@@ -843,6 +864,7 @@ impl WindowTextSystem {
+                 font_runs.push(FontRun {
+                     len: run.len,
+                     font_id,
++                    letter_spacing,
+                 });
+             }
+         }
+@@ -1019,6 +1041,8 @@ pub struct TextRun {
+     pub underline: Option<UnderlineStyle>,
+     /// The strikethrough style (if any)
+     pub strikethrough: Option<StrikethroughStyle>,
++    /// Letter spacing applied between glyphs, in pixels.
++    pub letter_spacing: Option<Pixels>,
+ }
+ 
+ #[cfg(all(target_os = "macos", test))]
+diff --git a/crates/gpui/src/text_system/line_layout.rs b/crates/gpui/src/text_system/line_layout.rs
+index e7362f71e5..dbf26987de 100644
+--- a/crates/gpui/src/text_system/line_layout.rs
++++ b/crates/gpui/src/text_system/line_layout.rs
+@@ -872,11 +872,23 @@ fn apply_force_width_to_layout(layout: &mut LineLayout, force_width: Pixels) {
+ }
+ 
+ /// A run of text with a single font.
+-#[derive(Copy, Clone, Debug, Eq, PartialEq, Hash)]
++#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+ #[expect(missing_docs)]
+ pub struct FontRun {
+     pub len: usize,
+     pub font_id: FontId,
++    pub letter_spacing: Option<Pixels>,
++}
++
++impl Hash for FontRun {
++    fn hash<H: Hasher>(&self, state: &mut H) {
++        self.len.hash(state);
++        self.font_id.hash(state);
++        self.letter_spacing
++            .map(Pixels::as_f32)
++            .map(f32::to_bits)
++            .hash(state);
++    }
+ }
+ 
+ trait AsCacheKeyRef {
+diff --git a/crates/gpui/src/text_system/line_wrapper.rs b/crates/gpui/src/text_system/line_wrapper.rs
+index 678e9e0f18..edc6d91ce8 100644
+--- a/crates/gpui/src/text_system/line_wrapper.rs
++++ b/crates/gpui/src/text_system/line_wrapper.rs
+@@ -687,9 +687,12 @@ impl Boundary {
+ #[cfg(test)]
+ mod tests {
+     use super::*;
+-    use crate::{Font, FontFeatures, FontStyle, FontWeight, TestAppContext, TestDispatcher, font};
++    use crate::{
++        Font, FontFeatures, FontRun, FontStyle, FontWeight, Hsla, TestAppContext,
++        TestDispatcher, TextRun, font,
++    };
+     #[cfg(target_os = "macos")]
+-    use crate::{TextRun, WindowTextSystem, WrapBoundary};
++    use crate::{WindowTextSystem, WrapBoundary};
+ 
+     fn build_wrapper() -> LineWrapper {
+         let dispatcher = TestDispatcher::new(0);
+@@ -715,6 +718,53 @@ mod tests {
+             .collect()
+     }
+ 
++    #[test]
++    fn test_tracking_changes_measured_width() {
++        let dispatcher = TestDispatcher::new(1);
++        let cx = TestAppContext::build(dispatcher, None);
++        let base = TextRun {
++            len: 4,
++            font: font(".ZedMono"),
++            color: Hsla::default(),
++            background_color: None,
++            underline: None,
++            strikethrough: None,
++            ..Default::default()
++        };
++        let font_id = cx.text_system().resolve_font(&base.font);
++        let platform = cx.text_system().platform_text_system_for_tests();
++        let no_tracking = platform.layout_line(
++            "TEST",
++            px(16.),
++            &[FontRun {
++                len: 4,
++                font_id,
++                letter_spacing: None,
++            }],
++        );
++        let wide = platform.layout_line(
++            "TEST",
++            px(16.),
++            &[FontRun {
++                len: 4,
++                font_id,
++                letter_spacing: Some(px(2.0)),
++            }],
++        );
++        let tight = platform.layout_line(
++            "TEST",
++            px(16.),
++            &[FontRun {
++                len: 4,
++                font_id,
++                letter_spacing: Some(px(-0.5)),
++            }],
++        );
++
++        assert!(wide.width > no_tracking.width);
++        assert!(tight.width <= no_tracking.width);
++    }
++
+     #[test]
+     fn test_wrap_line() {
+         let mut wrapper = build_wrapper();
+diff --git a/crates/gpui_macos/src/text_system.rs b/crates/gpui_macos/src/text_system.rs
+index fbc48864ce..ae1ff745b3 100644
+--- a/crates/gpui_macos/src/text_system.rs
++++ b/crates/gpui_macos/src/text_system.rs
+@@ -22,7 +22,7 @@ use core_text::{
+         kCTFontWidthTrait,
+     },
+     line::CTLine,
+-    string_attributes::kCTFontAttributeName,
++    string_attributes::{kCTFontAttributeName, kCTKernAttributeName},
+ };
+ use font_kit::{
+     font::Font as FontKitFont,
+@@ -567,6 +567,13 @@ impl MacTextSystemState {
+                         kCTFontAttributeName,
+                         &font.native_font().clone_with_font_size(font_size.into()),
+                     );
++                    if let Some(spacing) = run.letter_spacing {
++                        string.set_attribute(
++                            cf_range,
++                            kCTKernAttributeName,
++                            &CFNumber::from(f64::from(spacing.as_f32())),
++                        );
++                    }
+                 }
+                 break_ligature = !break_ligature;
+             }
+@@ -777,6 +784,7 @@ mod tests {
+         let mut style = FontRun {
+             font_id,
+             len: line.len(),
++            letter_spacing: None,
+         };
+ 
+         let layout = fonts.layout_line(line, px(16.), &[style]);
+@@ -798,10 +806,12 @@ mod tests {
+             FontRun {
+                 len: "\u{feff}".len(),
+                 font_id,
++                letter_spacing: None,
+             },
+             FontRun {
+                 len: "ab".len(),
+                 font_id,
++                letter_spacing: None,
+             },
+         ];
+         let layout = fonts.layout_line(line, px(16.), font_runs);
+@@ -820,8 +830,16 @@ mod tests {
+ 
+         let text = "hello world";
+         let font_runs = &[
+-            FontRun { font_id, len: 5 }, // "hello"
+-            FontRun { font_id, len: 6 }, // " world"
++            FontRun {
++                font_id,
++                len: 5,
++                letter_spacing: None,
++            }, // "hello"
++            FontRun {
++                font_id,
++                len: 6,
++                letter_spacing: None,
++            }, // " world"
+         ];
+ 
+         let layout = fonts.layout_line(text, px(16.), font_runs);
+@@ -841,11 +859,16 @@ mod tests {
+         // Test with different font runs - should not insert ZWNJ
+         let font_id2 = fonts.font_id(&font("Times")).unwrap_or(font_id);
+         let font_runs_different = &[
+-            FontRun { font_id, len: 5 }, // "hello"
++            FontRun {
++                font_id,
++                len: 5,
++                letter_spacing: None,
++            }, // "hello"
+             // " world"
+             FontRun {
+                 font_id: font_id2,
+                 len: 6,
++                letter_spacing: None,
+             },
+         ];
+ 
+@@ -870,15 +893,31 @@ mod tests {
+         let font_id = fonts.font_id(&font("Helvetica")).unwrap();
+ 
+         let text = "hello";
+-        let font_runs = &[FontRun { font_id, len: 5 }];
++        let font_runs = &[FontRun {
++            font_id,
++            len: 5,
++            letter_spacing: None,
++        }];
+         let layout = fonts.layout_line(text, px(16.), font_runs);
+         assert_eq!(layout.len, text.len());
+ 
+         let text = "abc";
+         let font_runs = &[
+-            FontRun { font_id, len: 1 }, // "a"
+-            FontRun { font_id, len: 1 }, // "b"
+-            FontRun { font_id, len: 1 }, // "c"
++            FontRun {
++                font_id,
++                len: 1,
++                letter_spacing: None,
++            }, // "a"
++            FontRun {
++                font_id,
++                len: 1,
++                letter_spacing: None,
++            }, // "b"
++            FontRun {
++                font_id,
++                len: 1,
++                letter_spacing: None,
++            }, // "c"
+         ];
+         let layout = fonts.layout_line(text, px(16.), font_runs);
+         assert_eq!(layout.len, text.len());
+diff --git a/crates/gpui_wgpu/benches/layout_line.rs b/crates/gpui_wgpu/benches/layout_line.rs
+index 6d66a7a2d5..4672567e85 100644
+--- a/crates/gpui_wgpu/benches/layout_line.rs
++++ b/crates/gpui_wgpu/benches/layout_line.rs
+@@ -73,14 +73,17 @@ fn bench_layout_line(c: &mut Criterion) {
+     let runs_no_fallback = vec![FontRun {
+         len: text.len(),
+         font_id: font_id_no_fallback,
++        letter_spacing: None,
+     }];
+     let runs_with_fallback = vec![FontRun {
+         len: text.len(),
+         font_id: font_id_with_fallback,
++        letter_spacing: None,
+     }];
+     let runs_mixed_direction = vec![FontRun {
+         len: text_mixed_direction.len(),
+         font_id: font_id_no_fallback,
++        letter_spacing: None,
+     }];
+ 
+     let mut group = c.benchmark_group("layout_line");
+diff --git a/crates/gpui_wgpu/src/cosmic_text_system.rs b/crates/gpui_wgpu/src/cosmic_text_system.rs
+index e84d924177..b6633f16f5 100644
+--- a/crates/gpui_wgpu/src/cosmic_text_system.rs
++++ b/crates/gpui_wgpu/src/cosmic_text_system.rs
+@@ -663,7 +663,16 @@ impl CosmicTextSystemState {
+                     None => &primary_attrs,
+                     Some(ix) => &fallback_attrs[ix],
+                 };
+-                attrs_list.add_span(span.start..span.end, attrs);
++                // cosmic-text takes letter spacing in em; GPUI's is in px.
++                match run.letter_spacing {
++                    Some(spacing) => attrs_list.add_span(
++                        span.start..span.end,
++                        &attrs
++                            .clone()
++                            .letter_spacing(spacing.as_f32() / f32::from(font_size)),
++                    ),
++                    None => attrs_list.add_span(span.start..span.end, attrs),
++                }
+             }
+             offs = run_end;
+         }
+@@ -790,6 +799,7 @@ fn clip_font_runs(font_runs: &[FontRun], range: Range<usize>) -> SmallVec<[FontR
+             clipped.push(FontRun {
+                 len: end - start,
+                 font_id: run.font_id,
++                letter_spacing: run.letter_spacing,
+             });
+         }
+     }
+@@ -1080,6 +1090,7 @@ mod tests {
+         let runs = [FontRun {
+             len: text.len(),
+             font_id,
++            letter_spacing: None,
+         }];
+         Ok(text_system.layout_line(text, gpui::px(14.0), &runs))
+     }
+@@ -1246,10 +1257,12 @@ mod tests {
+             FontRun {
+                 len: 3,
+                 font_id: fid(1),
++                letter_spacing: None,
+             },
+             FontRun {
+                 len: 4,
+                 font_id: fid(2),
++                letter_spacing: None,
+             },
+         ];
+ 
+@@ -1259,11 +1272,13 @@ mod tests {
+             &[
+                 FontRun {
+                     len: 1,
+-                    font_id: fid(1)
++                    font_id: fid(1),
++                    letter_spacing: None
+                 },
+                 FontRun {
+                     len: 2,
+-                    font_id: fid(2)
++                    font_id: fid(2),
++                    letter_spacing: None
+                 },
+             ]
+         );
+@@ -1271,7 +1286,8 @@ mod tests {
+             clip_font_runs(&runs, 3..7).as_slice(),
+             &[FontRun {
+                 len: 4,
+-                font_id: fid(2)
++                font_id: fid(2),
++                letter_spacing: None
+             }]
+         );
+         assert!(clip_font_runs(&runs, 5..5).is_empty());
+diff --git a/crates/gpui_windows/src/direct_write.rs b/crates/gpui_windows/src/direct_write.rs
+index 5a761cce19..f8e09cf800 100644
+--- a/crates/gpui_windows/src/direct_write.rs
++++ b/crates/gpui_windows/src/direct_write.rs
+@@ -551,12 +551,10 @@ impl DirectWriteState {
+                     format.SetFontFallback(fallbacks)?;
+                 }
+ 
+-                let layout = components.factory.CreateTextLayout(
+-                    text_wide,
+-                    &format,
+-                    f32::INFINITY,
+-                    f32::INFINITY,
+-                )?;
++                let layout: IDWriteTextLayout1 = components
++                    .factory
++                    .CreateTextLayout(text_wide, &format, f32::INFINITY, f32::INFINITY)?
++                    .cast()?;
+                 let current_text = &text[utf8_offset..(utf8_offset + first_run.len)];
+                 utf8_offset += first_run.len;
+                 let current_text_utf16_length = current_text.encode_utf16().count() as u32;
+@@ -565,6 +563,9 @@ impl DirectWriteState {
+                     length: current_text_utf16_length,
+                 };
+                 layout.SetTypography(&font_info.features, text_range)?;
++                if let Some(spacing) = first_run.letter_spacing {
++                    layout.SetCharacterSpacing(0.0, spacing.as_f32(), 0.0, text_range)?;
++                }
+                 utf16_offset += current_text_utf16_length;
+ 
+                 layout
+@@ -603,6 +604,9 @@ impl DirectWriteState {
+                 text_layout.SetFontStyle(font_info.font_face.GetStyle(), text_range)?;
+                 text_layout.SetFontWeight(font_info.font_face.GetWeight(), text_range)?;
+                 text_layout.SetTypography(&font_info.features, text_range)?;
++                if let Some(spacing) = run.letter_spacing {
++                    text_layout.SetCharacterSpacing(0.0, spacing.as_f32(), 0.0, text_range)?;
++                }
+ 
+                 break_ligatures = !break_ligatures;
+             }
+-- 
+2.56.0
+

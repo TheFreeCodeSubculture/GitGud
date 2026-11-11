@@ -1,0 +1,454 @@
+From e62b80af67e8b6f751f8de47ea2f1a102c1fa8eb Mon Sep 17 00:00:00 2001
+From: Git Gud <gg@local>
+Date: Wed, 4 Nov 2026 13:38:22 +0530
+Subject: [PATCH 1/2] native: decorations client, window
+ move/resize/state/close, windowDragArea, letterSpacing style
+
+---
+ packages/native/js/host.ts                   |   2 +
+ packages/native/js/mutations.ts              |   2 +
+ packages/native/src/custom_elements/input.rs |   1 +
+ packages/native/src/markdown/render.rs       |   1 +
+ packages/native/src/renderer.rs              | 278 +++++++++++++++++++
+ packages/native/src/style.rs                 |   2 +
+ packages/native/src/text/runs.rs             |   2 +
+ 7 files changed, 288 insertions(+)
+
+diff --git a/packages/native/js/host.ts b/packages/native/js/host.ts
+index 0fd36b9..e3bcad9 100644
+--- a/packages/native/js/host.ts
++++ b/packages/native/js/host.ts
+@@ -197,6 +197,8 @@ export interface StyleDesc {
+   fontWeight?: string | number
+   textAlign?: string
+   lineHeight?: number
++  /** px, added after every glyph. Needs a GPUIX native build with letter-spacing. */
++  letterSpacing?: number
+   whiteSpace?: "normal" | "nowrap"
+   textOverflow?: "ellipsis" | "ellipsis-start"
+   lineClamp?: number
+diff --git a/packages/native/js/mutations.ts b/packages/native/js/mutations.ts
+index 0fef646..7ce865c 100644
+--- a/packages/native/js/mutations.ts
++++ b/packages/native/js/mutations.ts
+@@ -124,6 +124,8 @@ export const UNIVERSAL_PROPS: ReadonlySet<string> = new Set([
+   "testId",
+   "highlight",
+   "role",
++  "windowDragArea",
++  "windowNoDrag",
+ ])
+ 
+ export function isUniversalProp(name: string): boolean {
+diff --git a/packages/native/src/custom_elements/input.rs b/packages/native/src/custom_elements/input.rs
+index 75176f9..e9cac06 100644
+--- a/packages/native/src/custom_elements/input.rs
++++ b/packages/native/src/custom_elements/input.rs
+@@ -1409,6 +1409,7 @@ impl TextEditorState {
+                 wavy: false,
+             }),
+             strikethrough: None,
++            letter_spacing: style.letter_spacing,
+         };
+         let runs = match self.marked_range.as_ref() {
+             Some(marked) if !is_placeholder => vec![
+diff --git a/packages/native/src/markdown/render.rs b/packages/native/src/markdown/render.rs
+index 456e6b2..8c8c4ed 100644
+--- a/packages/native/src/markdown/render.rs
++++ b/packages/native/src/markdown/render.rs
+@@ -143,6 +143,7 @@ pub fn flatten_runs(runs: &[InlineRun], theme: &Theme, base_weight: FontWeight)
+                 thickness: px(1.0),
+                 color: Some(theme.text_muted),
+             }),
++            letter_spacing: None,
+         });
+     }
+ 
+diff --git a/packages/native/src/renderer.rs b/packages/native/src/renderer.rs
+index fffbe80..75bb342 100644
+--- a/packages/native/src/renderer.rs
++++ b/packages/native/src/renderer.rs
+@@ -459,6 +459,13 @@ enum UiCommand {
+     MinimizeWindow,
+     ZoomWindow,
+     ToggleFullscreen,
++    CloseWindow,
++    StartWindowMove,
++    StartWindowResize(gpui::ResizeEdge),
++    /// `(maximized, client decorations)`.
++    WindowState {
++        response: SyncSender<(bool, bool)>,
++    },
+     SetWindowTitle(String),
+     UpdateApp(Box<dyn FnOnce(&mut gpui::App) + Send>),
+     PromptForPaths {
+@@ -588,6 +595,17 @@ async fn run_ui_commands(
+             UiCommand::ToggleFullscreen => {
+                 window.update(cx, |_view, window, _cx| window.toggle_fullscreen())
+             }
++            UiCommand::CloseWindow => window.update(cx, |_view, window, _cx| window.remove_window()),
++            UiCommand::StartWindowMove => {
++                window.update(cx, |_view, window, _cx| window.start_window_move())
++            }
++            UiCommand::StartWindowResize(edge) => {
++                window.update(cx, move |_view, window, _cx| window.start_window_resize(edge))
++            }
++            UiCommand::WindowState { response } => window.update(cx, move |_view, window, _cx| {
++                let client = matches!(window.window_decorations(), gpui::Decorations::Client { .. });
++                response.send((window.is_maximized(), client)).ok();
++            }),
+             UiCommand::SetWindowTitle(title) => window.update(cx, move |view, window, cx| {
+                 view.window_title = title;
+                 cx.notify();
+@@ -1914,6 +1932,103 @@ impl GpuixRenderer {
+         ))
+     }
+ 
++    /// Close the window. The last window closing ends the frame loop.
++    #[napi]
++    pub fn close_window(&self) -> Result<()> {
++        #[cfg(target_os = "macos")]
++        return update_window(|_view, window, _cx| window.remove_window());
++
++        #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
++        return self.send_ui_command(UiCommand::CloseWindow);
++
++        #[cfg(not(any(
++            target_os = "macos",
++            target_os = "windows",
++            target_os = "linux",
++            target_os = "freebsd"
++        )))]
++        Err(Error::from_reason("Unsupported operating system"))
++    }
++
++    /// Hand the window move to the compositor (Wayland and X11). It must run
++    /// while the mouse button is still down; prefer the `windowDragArea` prop,
++    /// which does it natively and also handles the double click.
++    #[napi]
++    pub fn start_window_move(&self) -> Result<()> {
++        #[cfg(target_os = "macos")]
++        return update_window(|_view, window, _cx| window.start_window_move());
++
++        #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
++        return self.send_ui_command(UiCommand::StartWindowMove);
++
++        #[cfg(not(any(
++            target_os = "macos",
++            target_os = "windows",
++            target_os = "linux",
++            target_os = "freebsd"
++        )))]
++        Err(Error::from_reason("Unsupported operating system"))
++    }
++
++    /// Start an interactive resize. `edge`: `top`, `bottom`, `left`, `right`,
++    /// `top-left`, `top-right`, `bottom-left` or `bottom-right`.
++    #[napi]
++    pub fn start_window_resize(&self, edge: String) -> Result<()> {
++        let edge = parse_resize_edge(&edge)
++            .ok_or_else(|| Error::from_reason(format!("Unknown resize edge `{edge}`")))?;
++        #[cfg(target_os = "macos")]
++        return update_window(move |_view, window, _cx| window.start_window_resize(edge));
++
++        #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
++        return self.send_ui_command(UiCommand::StartWindowResize(edge));
++
++        #[cfg(not(any(
++            target_os = "macos",
++            target_os = "windows",
++            target_os = "linux",
++            target_os = "freebsd"
++        )))]
++        Err(Error::from_reason("Unsupported operating system"))
++    }
++
++    /// Whether the window is maximized.
++    #[napi]
++    pub fn is_maximized(&self) -> Result<bool> {
++        Ok(self.window_state()?.0)
++    }
++
++    /// Whether the app is drawing the window frame (`decorations: "client"`
++    /// took effect), so it must draw its own title bar.
++    #[napi]
++    pub fn has_client_decorations(&self) -> Result<bool> {
++        Ok(self.window_state()?.1)
++    }
++
++    fn window_state(&self) -> Result<(bool, bool)> {
++        #[cfg(target_os = "macos")]
++        return update_window(|_view, window, _cx| {
++            (
++                window.is_maximized(),
++                matches!(window.window_decorations(), gpui::Decorations::Client { .. }),
++            )
++        });
++
++        #[cfg(any(target_os = "windows", target_os = "linux", target_os = "freebsd"))]
++        {
++            let (response, receiver) = sync_channel(1);
++            self.send_ui_command(UiCommand::WindowState { response })?;
++            return recv_ui_response(receiver, "the window state query");
++        }
++
++        #[cfg(not(any(
++            target_os = "macos",
++            target_os = "windows",
++            target_os = "linux",
++            target_os = "freebsd"
++        )))]
++        Err(Error::from_reason("Unsupported operating system"))
++    }
++
+     /// Run the native zoom or maximize operation.
+     #[napi]
+     pub fn zoom_window(&self) -> Result<()> {
+@@ -5379,6 +5494,10 @@ impl gpui::Render for GpuixView {
+                 ))
+                 .child(crate::automation::bounds_frame_reset())
+                 .child(result)
++                .children(
++                    matches!(window.window_decorations(), gpui::Decorations::Client { .. })
++                        .then(client_resize_handles),
++                )
+                 .children(
+                     self.painted_frame
+                         .clone()
+@@ -5877,6 +5996,51 @@ pub(crate) fn build_host_container(
+         el = apply_a11y_click(el, element.events(), id, ctx.event_callback);
+     }
+ 
++    // `windowDragArea`: dragging from here moves the window, like CSS
++    // `-webkit-app-region: drag`; a double click toggles maximize. The move
++    // starts on the first drag motion, not on the press: the compositor takes
++    // over the pointer as soon as it starts, which would swallow the second
++    // click of a double click. Wayland keeps the press serial, so a move
++    // started a moment later is still accepted. `windowNoDrag` claims the
++    // press for a child such as a window button.
++    let custom_flag = |key: &str| {
++        element
++            .custom_props()
++            .get(key)
++            .and_then(|value| value.as_bool())
++            .unwrap_or(false)
++    };
++    if custom_flag("windowDragArea") {
++        use std::sync::atomic::{AtomicBool, Ordering};
++        static ARMED: AtomicBool = AtomicBool::new(false);
++        el = el
++            .on_mouse_down(gpui::MouseButton::Left, |event, window, _cx| {
++                if event.click_count == 2 {
++                    ARMED.store(false, Ordering::Relaxed);
++                    log::debug!("windowDragArea: double click, toggling maximize");
++                    window.zoom_window();
++                } else {
++                    ARMED.store(true, Ordering::Relaxed);
++                }
++            })
++            .on_mouse_up(gpui::MouseButton::Left, |_event, _window, _cx| {
++                ARMED.store(false, Ordering::Relaxed);
++            })
++            .on_mouse_move(|event, window, _cx| {
++                if event.pressed_button == Some(gpui::MouseButton::Left)
++                    && ARMED.swap(false, Ordering::Relaxed)
++                {
++                    log::debug!("windowDragArea: start_window_move");
++                    window.start_window_move();
++                }
++            });
++    }
++    if custom_flag("windowNoDrag") {
++        el = el.on_mouse_down(gpui::MouseButton::Left, |_event, _window, cx| {
++            cx.stop_propagation();
++        });
++    }
++
+     for event_type in element.events() {
+         let id = element.id;
+         let callback = ctx.event_callback.clone();
+@@ -6699,6 +6863,9 @@ pub(crate) fn apply_styles<E: gpui::Styled>(mut el: E, style: &StyleDesc) -> E {
+             el = el.line_height(gpui::px(line_height as f32));
+         }
+     }
++    if let Some(spacing) = style.letter_spacing {
++        el = el.letter_spacing(gpui::px(spacing as f32));
++    }
+     if let Some(radius) = style.border_radius {
+         el = el.rounded(gpui::px(radius as f32));
+     }
+@@ -7697,6 +7864,12 @@ pub struct WindowOptions {
+     /// size and window chrome options are ignored. macOS and Linux. Defaults
+     /// to the `GPUIX_TERMINAL=1` environment variable.
+     pub terminal: Option<bool>,
++    /// `"client"` asks for a window with no native title bar or frame (Linux
++    /// Wayland and X11), so the app draws its own chrome. Use `startWindowMove`
++    /// / `windowDragArea` for the drag region; GPUIX adds the resize borders.
++    /// Where the compositor cannot do it the window keeps its native frame
++    /// (`hasClientDecorations()` tells). Ignored on macOS and Windows.
++    pub decorations: Option<String>,
+ }
+ 
+ impl Default for WindowOptions {
+@@ -7720,6 +7893,7 @@ impl Default for WindowOptions {
+             app_id: None,
+             layer_shell: None,
+             terminal: None,
++            decorations: None,
+         }
+     }
+ }
+@@ -7781,6 +7955,108 @@ fn to_layer_shell_options(options: &LayerShellOptions) -> gpui::layer_shell::Lay
+     }
+ }
+ 
++fn parse_resize_edge(name: &str) -> Option<gpui::ResizeEdge> {
++    use gpui::ResizeEdge::*;
++    Some(match name {
++        "top" => Top,
++        "bottom" => Bottom,
++        "left" => Left,
++        "right" => Right,
++        "top-left" => TopLeft,
++        "top-right" => TopRight,
++        "bottom-left" => BottomLeft,
++        "bottom-right" => BottomRight,
++        _ => return None,
++    })
++}
++
++/// Resize borders for a window that draws its own frame, like Zed's
++/// `client_side_decorations`: a thin hit zone around the edge sets the resize
++/// cursor and, in the capture phase, turns a left press into a compositor
++/// resize before any element sees it.
++fn client_resize_handles() -> impl gpui::IntoElement {
++    use gpui::{px, CursorStyle, ResizeEdge, Styled};
++    use std::sync::atomic::{AtomicBool, Ordering};
++    // Zone width in px. Wider than 1 so the border is easy to grab.
++    let zone = px(5.0);
++    // Whether the pointer was on a border at the last move, so leaving it
++    // repaints once and the resize cursor clears.
++    static ON_EDGE: AtomicBool = AtomicBool::new(false);
++    fn edge_at(
++        pos: gpui::Point<gpui::Pixels>,
++        zone: gpui::Pixels,
++        size: gpui::Size<gpui::Pixels>,
++    ) -> Option<ResizeEdge> {
++        let (l, r) = (pos.x < zone, pos.x > size.width - zone);
++        let (t, b) = (pos.y < zone, pos.y > size.height - zone);
++        Some(match (t, b, l, r) {
++            (true, _, true, _) => ResizeEdge::TopLeft,
++            (true, _, _, true) => ResizeEdge::TopRight,
++            (_, true, true, _) => ResizeEdge::BottomLeft,
++            (_, true, _, true) => ResizeEdge::BottomRight,
++            (true, ..) => ResizeEdge::Top,
++            (_, true, ..) => ResizeEdge::Bottom,
++            (_, _, true, _) => ResizeEdge::Left,
++            (_, _, _, true) => ResizeEdge::Right,
++            _ => return None,
++        })
++    }
++    gpui::canvas(
++        |_bounds, window, _cx| {
++            window.insert_hitbox(
++                gpui::Bounds::new(gpui::point(px(0.0), px(0.0)), window.viewport_size()),
++                gpui::HitboxBehavior::Normal,
++            )
++        },
++        move |_bounds, hitbox, window, _cx| {
++            // Maximized and fullscreen windows have nothing to drag out of.
++            if window.is_maximized() || window.is_fullscreen() {
++                return;
++            }
++            let size = window.viewport_size();
++            if let Some(edge) = edge_at(window.mouse_position(), zone, size) {
++                window.set_cursor_style(
++                    match edge {
++                        ResizeEdge::Top | ResizeEdge::Bottom => CursorStyle::ResizeUpDown,
++                        ResizeEdge::Left | ResizeEdge::Right => CursorStyle::ResizeLeftRight,
++                        ResizeEdge::TopLeft | ResizeEdge::BottomRight => {
++                            CursorStyle::ResizeUpLeftDownRight
++                        }
++                        ResizeEdge::TopRight | ResizeEdge::BottomLeft => {
++                            CursorStyle::ResizeUpRightDownLeft
++                        }
++                    },
++                    &hitbox,
++                );
++            }
++            window.on_mouse_event(move |event: &gpui::MouseMoveEvent, phase, window, _cx| {
++                if phase != gpui::DispatchPhase::Bubble {
++                    return;
++                }
++                let on_edge = edge_at(event.position, zone, window.viewport_size()).is_some();
++                if ON_EDGE.swap(on_edge, Ordering::Relaxed) || on_edge {
++                    window.refresh();
++                }
++            });
++            window.on_mouse_event(move |event: &gpui::MouseDownEvent, phase, window, cx| {
++                if phase != gpui::DispatchPhase::Capture
++                    || event.button != gpui::MouseButton::Left
++                    || window.is_maximized()
++                    || window.is_fullscreen()
++                {
++                    return;
++                }
++                if let Some(edge) = edge_at(event.position, zone, window.viewport_size()) {
++                    window.start_window_resize(edge);
++                    cx.stop_propagation();
++                }
++            });
++        },
++    )
++    .size_full()
++    .absolute()
++}
++
+ fn to_gpui_window_options(
+     options: &WindowOptions,
+     bounds: gpui::Bounds<gpui::Pixels>,
+@@ -7823,6 +8099,8 @@ fn to_gpui_window_options(
+         focus: options.focus.unwrap_or(true),
+         show: options.show.unwrap_or(true),
+         app_id: options.app_id.clone(),
++        window_decorations: (options.decorations.as_deref() == Some("client"))
++            .then_some(gpui::WindowDecorations::Client),
+         ..Default::default()
+     };
+ 
+diff --git a/packages/native/src/style.rs b/packages/native/src/style.rs
+index 5c2aba8..9113ac1 100644
+--- a/packages/native/src/style.rs
++++ b/packages/native/src/style.rs
+@@ -234,6 +234,8 @@ pub struct StyleDesc {
+     pub font_weight: Option<FontWeightValue>,
+     pub text_align: Option<String>,
+     pub line_height: Option<f64>,
++    /// CSS `letter-spacing` in px, added after every glyph (negative tightens).
++    pub letter_spacing: Option<f64>,
+     pub white_space: Option<String>,
+     pub text_overflow: Option<String>,
+     pub line_clamp: Option<f64>,
+diff --git a/packages/native/src/text/runs.rs b/packages/native/src/text/runs.rs
+index 6957a3f..5f9128e 100644
+--- a/packages/native/src/text/runs.rs
++++ b/packages/native/src/text/runs.rs
+@@ -23,6 +23,7 @@ pub fn plain_runs(text: &str, font: &Font, color: Hsla) -> Vec<TextRun> {
+         background_color: None,
+         underline: None,
+         strikethrough: None,
++        letter_spacing: None,
+     }]
+ }
+ 
+@@ -43,6 +44,7 @@ pub fn runs_for_spans(
+         background_color: None,
+         underline: None,
+         strikethrough: None,
++        letter_spacing: None,
+     };
+     let mut runs = Vec::with_capacity(spans.len() * 2 + 1);
+     let mut at = 0usize;
+-- 
+2.56.0
+

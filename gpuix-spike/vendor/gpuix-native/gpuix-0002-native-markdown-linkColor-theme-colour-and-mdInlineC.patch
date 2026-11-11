@@ -1,0 +1,200 @@
+From cef32416c51d6da6952ad0f2c2aaa791f55fe482 Mon Sep 17 00:00:00 2001
+From: Git Gud <gg@local>
+Date: Wed, 4 Nov 2026 13:41:30 +0530
+Subject: [PATCH 2/2] native: markdown linkColor theme colour and
+ mdInlineCodeScale metric
+
+---
+ packages/native/src/custom_elements/input.rs |  1 +
+ packages/native/src/markdown/render.rs       | 22 +++++++++++++++++---
+ packages/native/src/text/runs.rs             |  2 ++
+ packages/native/src/theme.rs                 | 17 +++++++++++++++
+ 4 files changed, 39 insertions(+), 3 deletions(-)
+
+diff --git a/packages/native/src/custom_elements/input.rs b/packages/native/src/custom_elements/input.rs
+index e9cac06..7b60d4a 100644
+--- a/packages/native/src/custom_elements/input.rs
++++ b/packages/native/src/custom_elements/input.rs
+@@ -1410,6 +1410,7 @@ impl TextEditorState {
+             }),
+             strikethrough: None,
+             letter_spacing: style.letter_spacing,
++            font_size: None,
+         };
+         let runs = match self.marked_range.as_ref() {
+             Some(marked) if !is_placeholder => vec![
+diff --git a/packages/native/src/markdown/render.rs b/packages/native/src/markdown/render.rs
+index 8c8c4ed..b735757 100644
+--- a/packages/native/src/markdown/render.rs
++++ b/packages/native/src/markdown/render.rs
+@@ -79,6 +79,17 @@ pub struct FlatText {
+ 
+ /// Flatten inline runs into shaped-text inputs. Pure given a theme.
+ pub fn flatten_runs(runs: &[InlineRun], theme: &Theme, base_weight: FontWeight) -> FlatText {
++    flatten_runs_sized(runs, theme, base_weight, theme.metrics.md_text_size)
++}
++
++/// [`flatten_runs`] for text drawn at `size`, so inline code can be a fraction of it.
++pub fn flatten_runs_sized(
++    runs: &[InlineRun],
++    theme: &Theme,
++    base_weight: FontWeight,
++    size: f32,
++) -> FlatText {
++    let code_scale = theme.metrics.md_inline_code_scale;
+     let mut text = String::new();
+     let mut out: Vec<TextRun> = Vec::with_capacity(runs.len());
+     let mut links: Vec<(Range<usize>, String)> = Vec::new();
+@@ -127,15 +138,18 @@ pub fn flatten_runs(runs: &[InlineRun], theme: &Theme, base_weight: FontWeight)
+             len: run.text.len(),
+             font: f,
+             // Inline code reads violet; links stay the monochrome foreground
+-            // with an underline, because accent is reserved for actions.
++            // with an underline, because accent is reserved for actions, unless
++            // the theme sets a link colour.
+             color: if run.style.code {
+                 theme.code_text
++            } else if run.style.link.is_some() {
++                theme.link.unwrap_or(theme.text)
+             } else {
+                 theme.text
+             },
+             background_color: None,
+             underline: run.style.link.is_some().then_some(UnderlineStyle {
+-                color: Some(theme.text_muted),
++                color: Some(theme.link.unwrap_or(theme.text_muted)),
+                 thickness: px(1.0),
+                 wavy: false,
+             }),
+@@ -144,6 +158,8 @@ pub fn flatten_runs(runs: &[InlineRun], theme: &Theme, base_weight: FontWeight)
+                 color: Some(theme.text_muted),
+             }),
+             letter_spacing: None,
++            font_size: (run.style.code && code_scale > 0.0 && code_scale != 1.0)
++                .then(|| px(size * code_scale)),
+         });
+     }
+ 
+@@ -345,7 +361,7 @@ fn text_element(
+ ) -> AnyElement {
+     use gpui::prelude::*;
+ 
+-    let flat = flatten_runs(runs, &ctx.theme, weight);
++    let flat = flatten_runs_sized(runs, &ctx.theme, weight, size);
+     let inner = flat_text_element(&flat, ctx);
+     div()
+         .w_full()
+diff --git a/packages/native/src/text/runs.rs b/packages/native/src/text/runs.rs
+index 5f9128e..2f7175b 100644
+--- a/packages/native/src/text/runs.rs
++++ b/packages/native/src/text/runs.rs
+@@ -24,6 +24,7 @@ pub fn plain_runs(text: &str, font: &Font, color: Hsla) -> Vec<TextRun> {
+         underline: None,
+         strikethrough: None,
+         letter_spacing: None,
++        font_size: None,
+     }]
+ }
+ 
+@@ -45,6 +46,7 @@ pub fn runs_for_spans(
+         underline: None,
+         strikethrough: None,
+         letter_spacing: None,
++        font_size: None,
+     };
+     let mut runs = Vec::with_capacity(spans.len() * 2 + 1);
+     let mut at = 0usize;
+diff --git a/packages/native/src/theme.rs b/packages/native/src/theme.rs
+index e952167..31ccb78 100644
+--- a/packages/native/src/theme.rs
++++ b/packages/native/src/theme.rs
+@@ -241,6 +241,9 @@ pub struct Metrics {
+     /// column keeps a readable width.
+     pub md_table_min_column_content: f32,
+     pub md_inline_code_radius: f32,
++    /// Inline code is drawn at this fraction of the surrounding text size. CSS
++    /// `code { font-size: .875em }` is 0.875. 1.0 keeps the body size.
++    pub md_inline_code_scale: f32,
+     // The fenced-block card. `<code>` paints no card of its own, so these are
+     // markdown-only: a document renderer owns its layout, a primitive does not.
+     pub md_code_padding_x: f32,
+@@ -315,6 +318,7 @@ impl Metrics {
+             o.md_table_min_column_content,
+         );
+         set(&mut self.md_inline_code_radius, o.md_inline_code_radius);
++        set(&mut self.md_inline_code_scale, o.md_inline_code_scale);
+         if let Some(sizes) = &o.md_heading_sizes {
+             for (slot, value) in self.md_heading_sizes.iter_mut().zip(sizes) {
+                 *slot = *value as f32;
+@@ -378,6 +382,7 @@ impl Metrics {
+             self.md_table_min_column_width,
+             self.md_table_min_column_content,
+             self.md_inline_code_radius,
++            self.md_inline_code_scale,
+         ] {
+             feed(value);
+         }
+@@ -421,6 +426,7 @@ impl Default for Metrics {
+             md_table_min_column_width: 96.0,
+             md_table_min_column_content: 48.0,
+             md_inline_code_radius: 4.5,
++            md_inline_code_scale: 1.0,
+             md_code_padding_x: 12.0,
+             md_code_padding_y: 10.0,
+             md_code_radius: 10.0,
+@@ -453,6 +459,9 @@ pub struct Theme {
+     pub text_dim: Hsla,
+     /// Accent (indigo) — list markers, blockquote rail, selection wash.
+     pub accent: Hsla,
++    /// Link text and underline in `<markdown>`. `None` keeps the foreground text
++    /// colour with a muted underline, so accent stays reserved for actions.
++    pub link: Option<Hsla>,
+     /// Text-editor caret.
+     pub caret: Hsla,
+     /// Inline-code text, violet-300.
+@@ -487,6 +496,7 @@ impl Theme {
+             text_faint: neutral(0.556),
+             text_dim: grey(0x98),
+             accent: oklch(0.673, 0.182, 276.935),
++            link: None,
+             caret: oklch(0.673, 0.182, 276.935),
+             code_text: oklch(0.811, 0.111, 293.571),
+             code_wash: with_alpha(oklch(0.702, 0.183, 293.541), 0.12),
+@@ -510,6 +520,7 @@ impl Theme {
+             text_faint: neutral(0.535),
+             text_dim: neutral(0.50),
+             accent: oklch(0.511, 0.262, 276.966),
++            link: None,
+             caret: oklch(0.511, 0.262, 276.966),
+             code_text: oklch(0.491, 0.27, 292.581),
+             code_wash: with_alpha(oklch(0.541, 0.281, 293.009), 0.10),
+@@ -535,6 +546,9 @@ impl Theme {
+         set(&mut self.text_faint, &o.text_faint);
+         set(&mut self.text_dim, &o.text_dim);
+         set(&mut self.accent, &o.accent);
++        if let Some(link) = o.link_color.as_deref().and_then(crate::color::parse_color_rgba) {
++            self.link = Some(link.into());
++        }
+         set(&mut self.caret, &o.caret);
+         set(&mut self.code_text, &o.code_text);
+         set(&mut self.code_wash, &o.code_wash);
+@@ -651,6 +665,8 @@ pub struct ThemeOverride {
+     pub text_faint: Option<String>,
+     pub text_dim: Option<String>,
+     pub accent: Option<String>,
++    /// Colour of `<markdown>` links (text and underline).
++    pub link_color: Option<String>,
+     pub caret: Option<String>,
+     pub code_text: Option<String>,
+     pub code_wash: Option<String>,
+@@ -694,6 +710,7 @@ pub struct MetricsOverride {
+     pub md_table_min_column_width: Option<f64>,
+     pub md_table_min_column_content: Option<f64>,
+     pub md_inline_code_radius: Option<f64>,
++    pub md_inline_code_scale: Option<f64>,
+     pub md_code_padding_x: Option<f64>,
+     pub md_code_padding_y: Option<f64>,
+     pub md_code_radius: Option<f64>,
+-- 
+2.56.0
+

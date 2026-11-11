@@ -1,0 +1,1 @@
+preload = ["./vendor/preload.ts", "./src/nav/content-glob.ts"]

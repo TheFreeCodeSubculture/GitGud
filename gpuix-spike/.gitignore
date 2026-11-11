@@ -1,0 +1,4 @@
+node_modules/
+assets/baked/
+native-core/target/
+native-core/*.old-*.node

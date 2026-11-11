@@ -1,0 +1,257 @@
+{
+  "version": 1,
+  "id": "11-iso-lesson",
+  "title": "11 · Isometric — a lesson, dissected",
+  "description": "Night mode lesson page in isometric; the sidebar, title bar and lesson lift off the shell while the view travels along the page.",
+  "definition": {
+    "scene": {
+      "version": 3,
+      "camera": {
+        "x": 0,
+        "y": 0,
+        "z": 1500,
+        "perspective": 5000,
+        "rotateX": 55,
+        "rotateY": 0,
+        "rotateZ": -41
+      },
+      "focus": {
+        "distance": 6500,
+        "fStop": 16,
+        "focalLength": 50,
+        "maxBlur": 3
+      },
+      "nodes": [
+        {
+          "id": "page",
+          "transform": {
+            "x": 240,
+            "y": 90,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "content",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "sidebar",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        },
+        {
+          "id": "header",
+          "parentId": "page",
+          "transform": {
+            "x": 0,
+            "y": 0,
+            "z": 0,
+            "rotateX": 0,
+            "rotateY": 0,
+            "rotateZ": 0,
+            "scale": 1
+          }
+        }
+      ]
+    },
+    "motion": {
+      "durationMs": 5000,
+      "speed": 1,
+      "tracks": [
+        {
+          "target": {
+            "kind": "surface",
+            "id": "page"
+          },
+          "property": "x",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 240,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 240,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "page"
+          },
+          "property": "y",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 90,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 90,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "content"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 200,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 150,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "sidebar"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 200,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 270,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "header"
+          },
+          "property": "z",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 200,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": 340,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "surface",
+            "id": "sidebar"
+          },
+          "property": "x",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 200,
+              "value": 0,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 4400,
+              "value": -70,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "rotateZ",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -41,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": -48,
+              "easing": "cinematic"
+            }
+          ]
+        },
+        {
+          "target": {
+            "kind": "camera"
+          },
+          "property": "y",
+          "keyframes": [
+            {
+              "timeMs": 0,
+              "value": -50,
+              "easing": "cinematic"
+            },
+            {
+              "timeMs": 5000,
+              "value": 50,
+              "easing": "cinematic"
+            }
+          ]
+        }
+      ]
+    },
+    "width": 1920,
+    "height": 1080
+  }
+}

@@ -35,7 +35,7 @@
       .then(function (data) {
         if (data && typeof data.stargazers_count === "number") {
           starsLabel.innerHTML =
-            "<strong>" + formatStars(data.stargazers_count) + "</strong>&nbsp;GitHub stars";
+            "<strong>" + formatStars(data.stargazers_count) + '</strong><span class="nav-stars-words">&nbsp;GitHub stars</span>';
         }
       })
       .catch(function () { /* pill keeps its static "Star on GitHub" label */ });

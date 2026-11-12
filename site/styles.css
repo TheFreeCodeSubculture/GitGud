@@ -642,6 +642,23 @@ html:not([data-platform]) .dl-icon--windows { display: block; }
   .hf-term   { --x: -34vw; --y: 470px; --s: 56px; --rot: 5deg; }
   .hf-fcs    { --x: 34vw; --y: 470px; --s: 56px; --rot: -5deg; }
 }
+@media (max-width: 820px) {
+  .hero-preview, .hero-preview:hover { transform: none; } /* no 3-D tilt on a live, clickable stage */
+}
+@media (max-width: 520px) {
+  .nav-brand-name { white-space: nowrap; }
+  .nav-right { gap: 2px; }
+  .nav-link { padding: 0 7px; }
+  .nav-stars-words { display: none; }
+  /* Two small marks at the edges, clear of the copy; the lower two would sit on the stage. */
+  .hf-term, .hf-fcs { display: none; }
+  .hf-git    { --x: -40vw; --y: 10px; --s: 40px; }
+  .hf-github { --x: 40vw; --y: 10px; --s: 40px; }
+  .cl-page code { overflow-wrap: anywhere; }
+}
+@media (max-width: 360px) {
+  .nav-brand-name { display: none; } /* the mark alone; the links need the room */
+}
 @media (max-width: 640px) {
   .download-cards { grid-template-columns: 1fr; }
   .stats-inner { grid-template-columns: 1fr 1fr; }
@@ -713,7 +730,7 @@ html:not([data-platform]) .dl-icon--windows { display: block; }
   .appwin, .tw { corner-shape: squircle; border-radius: 22px; }
 }
 .appwin {
-  z-index: 1; overflow: hidden; background: #0a0a0a;
+  z-index: 1; overflow: hidden; background: #0a0a0a 0 0 / 100% 100% no-repeat; /* stage.js adds the poster image */
   box-shadow: 0 0 0 0.5px rgba(0, 0, 0, 0.85), 0 0 96px 14px rgba(0, 0, 0, 0.5);
 }
 .appwin::after, .tw::after {
@@ -767,7 +784,7 @@ html:not([data-platform]) .dl-icon--windows { display: block; }
 
 /* Hero demo: the stage (stage.js) plus a tour bar under it (hero.js). */
 .hero-demo .scrn { border-radius: var(--radius-lg); }
-.scrn iframe { opacity: 0; transition: opacity 0.5s ease; }
+.scrn iframe { opacity: 0; } /* no fade: the poster under it is the same screen */
 .scrn.live iframe { opacity: 1; }
 @media (hover: hover) and (pointer: fine) {
   .hero-demo .scrn.live:not(.steer) { cursor: pointer; }
@@ -783,8 +800,9 @@ html:not([data-platform]) .dl-icon--windows { display: block; }
 .hcap { flex: 1 1 320px; max-width: 56ch; min-height: 3em; font-size: 14px; line-height: 1.5; color: var(--fg-muted); }
 .hcap code, .hint code { font-family: var(--font-mono); font-size: 0.9em; padding: 1px 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.08); color: var(--fg); }
 .hcap kbd, .hint kbd { font: 500 0.8em var(--font-mono); padding: 1px 6px; border-radius: 5px; border: 1px solid var(--border-strong); background: rgba(255, 255, 255, 0.05); color: var(--fg); }
-.hctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.chaps { display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
+.hctl { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; min-width: 0; max-width: 100%; }
+.chaps { display: flex; gap: 8px; min-width: 0; max-width: 100%; overflow-x: auto; scrollbar-width: none; overscroll-behavior-x: contain; }
+.chaps::-webkit-scrollbar { display: none; }
 .chap, .driving button, .try {
   flex: none; height: 34px; padding: 0 14px; border-radius: 999px; cursor: pointer;
   font: 500 13px var(--font-sans); white-space: nowrap;
@@ -818,4 +836,12 @@ html:not([data-platform]) .dl-icon--windows { display: block; }
   flex: none; display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%;
   background: #3b6cf6; color: #fff; font-size: 12px; font-weight: 600; box-shadow: 0 0 0 4px rgba(59, 108, 246, 0.25);
 }
-@media (max-width: 640px) { .hbar { flex-direction: column; } }
+/* Phones: caption over a full-width row of pills that scrolls sideways,
+ * faded at the edge so it reads as "there is more". (In a column, the
+ * caption's 320px flex-basis would become a 320px-tall gap.) */
+@media (max-width: 640px) {
+  .hbar { flex-direction: column; align-items: stretch; }
+  .hcap { flex: none; max-width: none; min-height: 4.5em; }
+  .hctl { flex-wrap: nowrap; }
+  .chaps { flex: 1 1 auto; padding-right: 24px; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 32px), transparent); }
+}

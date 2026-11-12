@@ -16,7 +16,7 @@
   var scrn = root.querySelector(".scrn");
   var steps = Array.prototype.slice.call(root.querySelectorAll(".step"));
 
-  var S = GGStage(scrn, { load: "near" });
+  var S = GGStage(scrn, { load: "near", poster: "assets/stage-course.webp" });
   var reduce = S.reduce, play = S.play, stop = S.stop, app = S.app, q = S.q;
   var begin = S.begin, celebrate = S.celebrate, clickApp = S.clickApp, clickTerm = S.clickTerm, run = S.run;
   var point = S.point, inApp = S.inApp, focus = S.focus, moveTo = S.moveTo, clearTerm = S.clearTerm;

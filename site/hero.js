@@ -16,7 +16,7 @@
   var root = document.getElementById("hero-demo");
   if (!root || !window.GGStage) return;
 
-  var S = GGStage(root.querySelector(".scrn"), { load: "now" });
+  var S = GGStage(root.querySelector(".scrn"), { load: "now", poster: "assets/stage-hero.webp" });
   var reduce = S.reduce;
   var fine = matchMedia("(hover: hover) and (pointer: fine)").matches;
   var cap = root.querySelector(".hcap"), chaps = root.querySelector(".chaps");
@@ -170,6 +170,14 @@
       else if (j < i) go(from, 0, 300, "cubic-bezier(.32,.72,0,1)");
       else go(from, -100, 240, "cubic-bezier(.32,.72,0,1)");
     });
+    centre(i);
+  }
+  /* On a narrow screen the pills scroll sideways; keep the current one in the middle of the row. */
+  function centre(i) {
+    var b = chaps.children[i];
+    if (!b || chaps.scrollWidth <= chaps.clientWidth) return;
+    var cr = chaps.getBoundingClientRect(), br = b.getBoundingClientRect();
+    chaps.scrollTo({ left: chaps.scrollLeft + br.left - cr.left - (cr.width - br.width) / 2, behavior: reduce ? "auto" : "smooth" });
   }
 
   /* ---------- the tour ---------- */
@@ -181,19 +189,23 @@
     drive(false);
     touring = true;
     var i = from, mine = ++run;
-    (function next() {
+    function next() {
+      if (mine !== run) return;
       at = i;
       fillTo(i);
       caption(CH[i].say);
       var t0 = performance.now();
       S.play(function (c) { lay(i); return CH[i].scene(c); }).then(function (ok) {
-        if (mine !== run) return;
+        if (mine !== run) return; // stopped on purpose: whoever stopped it carries on
         if (ok) CH[i].d = (performance.now() - t0) / 1000; // the next lap fills in step with the real run
-        if (!ok || !touring || reduce) { touring = false; return; }
+        if (!touring || reduce) { touring = false; return; }
+        // A chapter that failed (a slow phone, say) hands over to the next rather than freezing the tour.
         i = (i + 1) % CH.length;
-        next();
+        if (ok) next(); else setTimeout(next, 800);
       });
-    })();
+    }
+    /* Pills and captions wait for the app, so the first pill fills in step with what's on screen. */
+    S.ready.then(next);
   }
   function halt() { touring = false; run++; S.stop(); }
 
@@ -246,6 +258,7 @@
       var f = b.querySelector(".fill");
       f.getAnimations().forEach(function (a) { a.cancel(); });
     });
+    centre(i);
     var n = CH[i].tasks.length;
     caption("Your turn: " + n + " things to try in <b>" + CH[i].label.toLowerCase() + "</b>. The Terminal takes your typing. <kbd>esc</kbd> gives it back.");
     ran = {};

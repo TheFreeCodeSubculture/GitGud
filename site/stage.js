@@ -26,6 +26,7 @@
     '<svg viewBox="0 0 16 24" aria-hidden="true"><path d="M1 1v18.4l4.6-4.4 3.3 7.4 3-1.3-3.2-7.2h6.4z" fill="#000" stroke="#fff" stroke-width="1.3" stroke-linejoin="round"/></svg>';
 
   var esc = function (s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;"); };
+  var queue = Promise.resolve(); // stages load their app one after another, in the order they were made
 
   /* Fling the page past the course and every step it crosses starts its
    * scene, each with a card's chime. So the demos' volume follows scroll
@@ -73,24 +74,36 @@
 
     new ResizeObserver(function () { desk.style.transform = "scale(" + scrn.clientWidth / W + ")"; }).observe(scrn);
 
+    /* Until the app has drawn its first screen, its window shows a still of
+     * that screen (opts.poster) instead of an empty, black frame. */
+    if (opts.poster) appwin.style.backgroundImage = "url(" + opts.poster + ")";
+
     /* The app is ~500 kB. The hero asks for it once the page has loaded; the
-     * course only when it is a screen or two away. */
+     * course when it is a screen or two away, and never before the hero's
+     * copy has arrived, so on a slow connection the two don't race. */
     var ready = new Promise(function (resolve) {
       addEventListener("message", function (e) {
-        if (e.source === frame.contentWindow && e.data && e.data.type === "gitgud-demo-ready") {
-          scrn.classList.add("live");
-          resolve();
-        }
+        if (e.source !== frame.contentWindow || !e.data || e.data.type !== "gitgud-demo-ready") return;
+        resolve();
+        /* The script is in, but nothing is drawn until a scene sets the app up;
+         * lift the poster only once something has been, a frame later. */
+        var app = frame.contentDocument.getElementById("root");
+        var lift = function () { requestAnimationFrame(function () { requestAnimationFrame(function () { scrn.classList.add("live"); }); }); };
+        if (app.childElementCount) lift();
+        else new MutationObserver(function (_, mo) { if (app.childElementCount) { mo.disconnect(); lift(); } }).observe(app, { childList: true });
       });
-      var load = function () { frame.src = "demo/demo.html"; };
+      var load = function (after) {
+        queue = queue.then(function () { return after; }).then(function () { frame.src = "demo/demo.html"; return ready; });
+      };
       if (opts.load === "now") {
-        if (document.readyState === "complete") load(); else addEventListener("load", load, { once: true });
+        // Takes its place in the queue now; asks for the app once the page itself has loaded.
+        load(document.readyState === "complete" ? null : new Promise(function (r) { addEventListener("load", r, { once: true }); }));
       } else {
         new IntersectionObserver(function (es, io) {
           if (!es.some(function (e) { return e.isIntersecting; })) return;
           io.disconnect();
           load();
-        }, { rootMargin: "1500px 0px" }).observe(scrn);
+        }, { rootMargin: "1200px 0px" }).observe(scrn);
       }
     });
 
@@ -144,7 +157,7 @@
         },
         /* the app's own time (its 2.5 s watch, a render): always waited for */
         until: function (test, ms) {
-          var left = ms || 8000;
+          var left = ms || 15000; // generous: a phone can take seconds over its first render
           return tick(function (dt) {
             if (paused) return null;
             var v = null;
@@ -380,7 +393,7 @@
         if (!b || n > 3) return c.w(1600);
         return c.w(1900).then(function () { return S.clickApp(c, b); }).then(function () { return c.w(500); }).then(function () { return next(n + 1); });
       }
-      return c.until(S.win, 12000).then(function () { return next(0); });
+      return c.until(S.win, 18000).then(function () { return next(0); });
     };
 
     S.clearTerm();

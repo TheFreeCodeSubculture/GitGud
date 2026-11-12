@@ -211,9 +211,20 @@ window.fetch = async (input, init) => {
  * plain focus() also scrolls the page around it; the visitor is reading that
  * page, so the demo's focus never scrolls anything. */
 const focusEl = HTMLElement.prototype.focus;
+/* A focused text field raises a phone's on-screen keyboard, even when it's a
+ * scripted tour that opened it (the search box has autoFocus). So text fields
+ * only take focus while a visitor is driving: `demo.keyboard(true)`. */
+let textFocus = false;
+const TEXT = "input, textarea, [contenteditable='true']";
 HTMLElement.prototype.focus = function (options?: FocusOptions) {
+  if (!textFocus && this.matches(TEXT)) return;
   focusEl.call(this, { ...options, preventScroll: true });
 };
+function keyboard(on: boolean) {
+  textFocus = on;
+  const active = document.activeElement;
+  if (!on && active instanceof HTMLElement && active.matches(TEXT)) active.blur();
+}
 
 /* Same for scrollIntoView (a search hit jumps to its heading): scroll the
  * app's own pane, never the page the visitor is reading. */
@@ -381,6 +392,8 @@ const demo = {
   touch: (path: string) => addPath(path, false),
   /** Limit the app's clickable parts to these selectors (null: everything). */
   allow,
+  /** Whether the app's text fields may take focus (and so raise a phone keyboard). */
+  keyboard,
   /** 0 to 1: how loud the app's chimes are. */
   volume: setVolume,
   /** For the visitor's shell on the website: what `ls` and `cd` see. */

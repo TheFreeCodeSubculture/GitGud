@@ -243,6 +243,7 @@
       if (!S.driving) return;
       watching++;
       S.app().allow(null);
+      S.app().keyboard(false);
       S.drive(false);
       driving.classList.remove("on");
       tryIt.hidden = !fine;
@@ -264,6 +265,7 @@
     ran = {};
     lay(i);
     S.app().allow(CH[i].allow);
+    S.app().keyboard(true);
     S.focus(S.term);
     task = 0;
     var mine = ++watching, shown = false;
@@ -297,7 +299,17 @@
 
   /* Esc gives it back, unless the app has something open that Esc should close. */
   function onKey(e) {
-    if (!S.driving || e.key !== "Escape") return;
+    if (!S.driving) return;
+    /* Ctrl/⌘+K belongs to the app while you drive. Pressed with focus outside it
+     * (the Terminal, the page), the browser would take it for its own search. */
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+      if (e.view === S.frame.contentWindow) return; // inside the app: its own handler has it
+      e.preventDefault();
+      var search = S.q("aside button", /^Search/);
+      if (search && !S.doc().querySelector("input[placeholder]")) { S.focus(S.appwin); search.click(); }
+      return;
+    }
+    if (e.key !== "Escape") return;
     if (S.doc().querySelector("[role=menu], input[placeholder]")) return; // the search box closes first
     tour(at);
   }
